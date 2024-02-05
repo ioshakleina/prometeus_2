@@ -5,26 +5,33 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder # Specify the target stage in the Dockerfile
     ports:
       - "8080:8080"
-    environment:
-      - APP_PORT=8080
+    depends_on:
+      - redis
+    networks:
+      - app-network
 
   redis:
-    image: "redis:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: redis # Specify the target stage in the Dockerfile
     ports:
       - "6379:6379"
+    networks:
+      - app-network
 
   prometheus:
-    image: "prom/prometheus:latest"
+    image: prom/prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
+      - ./prometheus:/etc/prometheus
+    networks:
+      - app-network
 
 networks:
-  default:
-    external:
-      name: bridge
+  app-network:
+    driver: bridge

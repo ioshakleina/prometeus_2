@@ -1,24 +1,34 @@
-# Use an official Node.js runtime as a parent image
-FROM node:14
+# Stage 1: Build Stage
+FROM node:14 AS builder
 
-# Set the working directory to /app
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
-
-# Install app dependencies
 RUN npm install
 
-# Copy the application files to the working directory
 COPY . .
+RUN npm run build  # Assuming you have a build script, adjust as needed
 
-# Expose port 8080
+# Stage 2: Production Stage
+FROM node:14-alpine
+
+WORKDIR /usr/src/app
+
+# Copy only necessary files from the builder stage
+COPY --from=builder /usr/src/app/dist ./dist
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm install --production
+
+# Expose the port the app runs on
 EXPOSE 8080
 
-# Define environment variable for the application port
-ENV APP_PORT 8080
+# Start the application
+CMD ["node", "dist/app.js"]
 
-# Run the application
-CMD ["node", "app.js"]
+# Stage 3: Redis Stage
+FROM redis:latest AS redis
 
+# Expose the default Redis port
+EXPOSE 6379
